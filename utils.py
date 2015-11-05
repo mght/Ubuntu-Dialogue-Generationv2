@@ -40,7 +40,7 @@ def process_token(c):
     if hasattr(c, 'label'):
         if c.label() in nodelist:
             return "__%s__" % c.label()
-    word = c[0]
+    word = ' '.join([t[0] for t in c.leaves()]) if isinstance(c, nltk.tree.Tree) else c[0]
     if is_url(word):
         return "__URL__"
     elif is_number(word):
