@@ -11,9 +11,9 @@ from nltk.corpus import wordnet as wn
 import cPickle
 import re
 from twokenize import tokenize
+from utils import process_line
 
 from random import seed
-
 seed(50)
 
 #optimization that is currently not used
@@ -40,15 +40,6 @@ def read_random_line(f, chunk_size=128):
         return f_handle.readline()
 
 
-
-def is_number(s):
-  try:
-    float(s)
-    return True
-  except ValueError:
-    return False
-
-
 def diff_times_in_seconds(t1,t2,date1,date2):
   t1 = t1.split(':')
   t2 = t2.split(':')
@@ -67,75 +58,6 @@ def diff_times_in_seconds(t1,t2,date1,date2):
   t1_secs = s1 + 60*(m1 + 60*(h1 + 24*(d1+ 30*(mo1+12*yr1))))
   t2_secs = s2 + 60*(m2 + 60*(h2 + 24*(d2+ 30*(mo2+12*yr2))))
   return t2_secs - t1_secs
-
-
-def is_url(s):
-    return s.startswith('http://') or s.startswith('https://') or s.startswith('ftp://') or s.startswith('ftps://') or s.startswith('smb://')
-
-
-def replace_sentence(text):
-    if isinstance(text,basestring) == False:
-      return text
-    words = nltk.word_tokenize(text)
-    sent = nltk.pos_tag(words)
-    chunks = nltk.ne_chunk(sent, binary=False)
-    sentence = []
-    nodelist = ['PERSON','ORGANIZATION','GPE','LOCATION','FACILITY','GSP']
-    for c,word in zip(chunks, words):
-        changed = False
-        if hasattr(c, 'node'):     
-            if c.node in nodelist:
-                sentence.append("__%s__" % c.node) 
-                changed = True
-        if not changed:
-          if is_url(word):
-              sentence.append("__URL__")
-          elif is_number(word):
-              sentence.append("__NUMBER__")
-          elif os.path.isabs(word):
-              sentence.append("__PATH__")
-          else:
-            sentence.append(word)           
-    return " ".join(sentence)            
-
-def clean_str(string, TREC=False):
-    """
-    Tokenization/string cleaning for all datasets except for SST.
-    Every dataset is lower cased except for TREC
-    """
-    string = re.sub(r"\'m", " \'m", string) 
-    string = re.sub(r"\'s", " \'s", string) 
-    string = re.sub(r"\'ve", " \'ve", string) 
-    string = re.sub(r"n\'t", " n\'t", string) 
-    string = re.sub(r"\'re", " \'re", string) 
-    string = re.sub(r"\'d", " \'d", string) 
-    string = re.sub(r"\'ll", " \'ll", string) 
-    string = re.sub(r"`", " ` ", string)
-    string = re.sub(r",", " , ", string) 
-    string = string.replace('</s>', '__EOS__')
-    return string.strip() 
-
-def process_token(c, word):
-    nodelist = ['PERSON', 'ORGANIZATION', 'GPE', 'LOCATION', 'FACILITY', 'GSP']
-    if hasattr(c, 'label'):
-        if c.label() in nodelist:
-            return "__%s__" % c.label()
-    if is_url(word):
-        return "__URL__"
-    elif is_number(word):
-        return "__NUMBER__"
-    elif os.path.isabs(word):
-        return "__PATH__"
-    return word
-
-def process_line(s, clean_string=True):
-    if clean_string:
-        s = clean_str(s)
-    tokens = tokenize(s)
-    #return [process_token(None,token).lower() for token in tokens]
-    sent = nltk.pos_tag(tokens)
-    chunks = nltk.ne_chunk(sent, binary=False)
-    return [process_token(c,token).lower().encode('UTF-8') for c,token in map(None, chunks, tokens)]
 
 
 class CreateDataset:
